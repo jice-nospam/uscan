@@ -1,0 +1,12 @@
+[package]
+name = "uscan"
+version = "0.1.0"
+edition = "2021"
+authors = ["jice <jice.nospam@gmail.com>"]
+description = "A universal source code scanner"
+license = "MIT"
+documentation = "https://doc.rs/uscan"
+repository = "https://github.com/jice-nospam/uscan"
+keywords = ["compiler", "scanner", "tokenizer"]
+
+[dependencies]
