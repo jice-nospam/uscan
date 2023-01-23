@@ -246,6 +246,7 @@ impl Scanner {
                         level -= 1;
                         self.current += multi_end.len() - 1;
                         if level == 0 {
+                            self.current += 1;
                             return Some(TokenType::Comment(
                                 data.source[self.start..self.current - 1]
                                     .iter()
@@ -262,7 +263,16 @@ impl Scanner {
             }
             self.current += 1;
         }
-        None
+        self.add_token(
+            TokenType::Comment(
+                data.source[self.start..self.current - 1]
+                    .iter()
+                    .cloned()
+                    .collect::<String>(),
+            ),
+            data,
+        );
+        Some(TokenType::Eof)
     }
     fn scan_number(&mut self, data: &mut ScannerData) -> Option<TokenType> {
         if is_digit(data.source[self.current]) {
