@@ -33,16 +33,24 @@ impl std::fmt::Display for ScanError {
 
 #[derive(Debug)]
 pub enum TokenType {
+    /// a symbol from the symbols list
     Symbol(String),
+    /// an identifier
     Identifier(String),
+    /// a string litteral. value is the string value, without the delimiting quotes
     StringLiteral(String),
+    /// a number literal, with its string representation in the code and its parsed value
     NumberLiteral(String, Number),
+    /// a keyword from the keywords list
     Keyword(String),
+    /// a single or multi-line comment. The value contains the delimiting characters.
     Comment(String),
-    // space
+    /// space, tabulations, ...
     Ignore,
+    /// a newline character
     NewLine,
     Eof,
+    /// only if Scanner::run returns an error
     Unknown,
 }
 
@@ -108,7 +116,9 @@ pub struct ScannerConfig {
 }
 
 impl Scanner {
-    /// scan the provided source code and return a list of tokens in the ScannerData structure
+    /// scan the provided source code and return a list of tokens in the ScannerData structure.
+    /// The ScannerData is not returned in the Result because we want it even when there is a scan error.
+    /// We don't return an iterator because the parser needs to easily move back and forth in the token list
     pub fn run(
         &mut self,
         source: &str,
