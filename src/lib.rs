@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn unicode_works() {
-        let source_code=r#"local s="à" --"#;
+        let source_code=r#"local s="à" -- comment"#;
 
         let mut scanner_data = ScannerData::default();
         Scanner::default().run(source_code, &LUA_CONFIG, &mut scanner_data).unwrap();
@@ -60,21 +60,22 @@ mod tests {
             TokenType::Identifier("s".to_string()),
             TokenType::Symbol("=".to_string()),
             TokenType::StringLiteral("à".to_string()),
-            TokenType::Comment("".to_string()),
+            TokenType::Comment("-- comment".to_string()),
         ]);
         assert_eq!(scanner_data.token_len,&[
-            5,1,1,4,0
+            5,1,1,3,10
         ]);
         assert_eq!(scanner_data.token_start,&[
-            0,6,7,8,14
+            0,6,7,8,12
         ]);
         let mut st=String::new();
         for i in 0..5 {
             let s=scanner_data.token_start[i];
             let e = s + scanner_data.token_len[i];
-            st.push_str(&source_code[s..e]);
+            let text: String = source_code.chars().skip(s).take(e-s).collect();
+            st.push_str(&text);
         }
-        assert_eq!(&st, "locals=\"à\"");
+        assert_eq!(&st, "locals=\"à\"-- comment");
 
     }
 
@@ -106,4 +107,34 @@ mod tests {
         assert_eq!(&st, "locals=\"à");
 
     }
+
+    #[test]
+    fn multi_comments() {
+        let source_code=r#"local s="" --[[comment]]"#;
+
+        let mut scanner_data = ScannerData::default();
+        Scanner::default().run(source_code, &LUA_CONFIG, &mut scanner_data).unwrap();
+        assert_eq!(scanner_data.token_types,&[
+            TokenType::Keyword("local".to_string()),
+            TokenType::Identifier("s".to_string()),
+            TokenType::Symbol("=".to_string()),
+            TokenType::StringLiteral("".to_string()),
+            TokenType::Comment("--[[comment]]".to_string()),
+        ]);
+        assert_eq!(scanner_data.token_len,&[
+            5,1,1,2,13
+        ]);
+        assert_eq!(scanner_data.token_start,&[
+            0,6,7,8,11
+        ]);
+        let mut st=String::new();
+        for i in 0..5 {
+            let s=scanner_data.token_start[i];
+            let e = s + scanner_data.token_len[i];
+            st.push_str(&source_code[s..e]);
+        }
+        assert_eq!(&st, "locals=\"\"--[[comment]]");
+
+    }
+
 }

@@ -1,6 +1,6 @@
 [package]
 name = "uscan"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["jice <jice.nospam@gmail.com>"]
 description = "A universal source code scanner"

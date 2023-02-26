@@ -78,9 +78,10 @@ pub struct ScannerData {
     pub token_lines: Vec<usize>,
     /// token start offset from its line beginning
     pub token_start: Vec<usize>,
-    /// token length in characters
+    /// token length in characters (not in bytes!)
     /// not always = token value's length.
-    /// for example for TokenType::StringLiteral("aa") the value length is 2 but the token length including the quotes is 4
+    /// For example for TokenType::StringLiteral("aa") the value length is 2 but the token length including the quotes is 4
+    /// Also when using unicode,  the length of "à" in bytes is 4, but the token_len is 3
     pub token_len: Vec<usize>,
 }
 
@@ -142,12 +143,8 @@ impl Scanner {
         Ok(())
     }
     fn add_token(&mut self, token: TokenType, data: &mut ScannerData) {
-        let mut len = 0;
-        for i in self.start..self.current {
-            len += data.source[i].len_utf8();
-        }
         data.token_start.push(self.start);
-        data.token_len.push(len);
+        data.token_len.push(self.current - self.start);
         data.token_types.push(token);
         data.token_lines.push(self.line);
         self.start = self.current;
@@ -208,33 +205,27 @@ impl Scanner {
         }
         if let Some(single_start) = config.single_line_cmt {
             if self.matches(single_start, data) {
-                self.start += single_start.len();
-                self.current += single_start.len();
                 return self.scan_single_line_comment(data);
             }
         }
         None
     }
     fn scan_single_line_comment(&mut self, data: &mut ScannerData) -> Option<TokenType> {
-        let mut is_empty = true;
-        while self.current < data.source.len() && data.source[self.current] != '\n' {
+        let source_len = data.source.len();
+        while self.current < source_len && data.source[self.current] != '\n' {
             self.current += 1;
-            is_empty = false;
         }
-        if self.current < data.source.len() {
+        let end=self.current;
+        if self.current < source_len {
             self.current += 1;
             self.line += 1;
         }
-        return if is_empty {
-            Some(TokenType::Comment("".to_string()))
-        } else {
-            Some(TokenType::Comment(
-                data.source[self.start..self.current - 1]
-                    .iter()
-                    .cloned()
-                    .collect::<String>(),
-            ))
-        };
+        return Some(TokenType::Comment(
+            data.source[self.start..end]
+                .iter()
+                .cloned()
+                .collect::<String>(),
+        ));
     }
     fn scan_multi_line_comment(
         &mut self,
@@ -261,7 +252,7 @@ impl Scanner {
                         if level == 0 {
                             self.current += 1;
                             return Some(TokenType::Comment(
-                                data.source[self.start..self.current - 1]
+                                data.source[self.start..self.current]
                                     .iter()
                                     .cloned()
                                     .collect::<String>(),
