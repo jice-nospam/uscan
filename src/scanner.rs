@@ -3,7 +3,7 @@ use std::io::Write;
 pub type Number = f64;
 
 /// The fields contain the line number and character position in the line
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub enum ScanError {
     /// Unrecognized token.
     UnknownToken(usize, usize),
@@ -31,7 +31,7 @@ impl std::fmt::Display for ScanError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenType {
     /// a symbol from the symbols list
     Symbol(String),
@@ -142,7 +142,10 @@ impl Scanner {
         Ok(())
     }
     fn add_token(&mut self, token: TokenType, data: &mut ScannerData) {
-        let len = self.current - self.start;
+        let mut len = 0;
+        for i in self.start..self.current {
+            len += data.source[i].len_utf8();
+        }
         data.token_start.push(self.start);
         data.token_len.push(len);
         data.token_types.push(token);
@@ -205,23 +208,33 @@ impl Scanner {
         }
         if let Some(single_start) = config.single_line_cmt {
             if self.matches(single_start, data) {
+                self.start += single_start.len();
+                self.current += single_start.len();
                 return self.scan_single_line_comment(data);
             }
         }
         None
     }
     fn scan_single_line_comment(&mut self, data: &mut ScannerData) -> Option<TokenType> {
+        let mut is_empty = true;
         while self.current < data.source.len() && data.source[self.current] != '\n' {
             self.current += 1;
+            is_empty = false;
         }
-        self.current += 1;
-        self.line += 1;
-        Some(TokenType::Comment(
-            data.source[self.start..self.current - 1]
-                .iter()
-                .cloned()
-                .collect::<String>(),
-        ))
+        if self.current < data.source.len() {
+            self.current += 1;
+            self.line += 1;
+        }
+        return if is_empty {
+            Some(TokenType::Comment("".to_string()))
+        } else {
+            Some(TokenType::Comment(
+                data.source[self.start..self.current - 1]
+                    .iter()
+                    .cloned()
+                    .collect::<String>(),
+            ))
+        };
     }
     fn scan_multi_line_comment(
         &mut self,
